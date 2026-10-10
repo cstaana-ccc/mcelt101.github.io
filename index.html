@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tree Builder: Syntax Diagramming</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#EEF2F6;--panel:#FFFFFF;--ink:#1B2340;--muted:#5A6482;--line:#9AA5C4;--phrase:#3B4BA8;--phrase-t:#FFFFFF;--word:#F2B632;--word-t:#2A2100;--ok:#2E8B57;--bad:#C8453B;--slot:#D9E0F0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#12172B;--panel:#1B2340;--ink:#EEF1FA;--muted:#A3ADCB;--line:#5A6798;--phrase:#7D8CE8;--phrase-t:#10153A;--word:#F2B632;--word-t:#2A2100;--ok:#4FC080;--bad:#F07A70;--slot:#2A3560}}
+:root[data-theme="dark"]{--paper:#12172B;--panel:#1B2340;--ink:#EEF1FA;--muted:#A3ADCB;--line:#5A6798;--phrase:#7D8CE8;--phrase-t:#10153A;--word:#F2B632;--word-t:#2A2100;--ok:#4FC080;--bad:#F07A70;--slot:#2A3560}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:"Newsreader",Georgia,serif;font-size:18px;line-height:1.5}
+main{max-width:680px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:30px;line-height:1.15;margin:0 0 6px;font-weight:600}
+.intro{color:var(--muted);margin:0 0 18px}
+.sentence{font-size:26px;font-style:italic;margin:6px 0 2px}
+.prog{color:var(--muted);font-size:16px}
+.board{background:var(--panel);border-radius:14px;padding:14px 10px;margin:12px 0;overflow-x:auto}
+.tree{position:relative;min-width:300px}
+.tree svg{position:absolute;inset:0;width:100%;height:100%}
+.tree line{stroke:var(--line);stroke-width:2;vector-effect:non-scaling-stroke}
+.slot{position:absolute;transform:translate(-50%,-50%);min-width:54px;height:36px;padding:0 10px;border:2px dashed var(--line);border-radius:18px;background:var(--slot);font:600 16px "Newsreader",Georgia,serif;color:var(--ink);cursor:pointer}
+.slot.over{border-color:var(--phrase);background:var(--panel)}
+.slot.filled{border-style:solid;border-color:transparent}
+.slot.filled.p{background:var(--phrase);color:var(--phrase-t)}
+.slot.filled.w{background:var(--word);color:var(--word-t)}
+.slot.ok{outline:3px solid var(--ok)}
+.slot.bad{outline:3px solid var(--bad);animation:nudge .25s}
+@keyframes nudge{25%{transform:translate(-56%,-50%)}75%{transform:translate(-44%,-50%)}}
+.word{position:absolute;transform:translate(-50%,-50%);font-size:20px;font-style:italic;white-space:nowrap}
+.bank{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 14px}
+.bank small{color:var(--muted);font-size:15px;margin-right:2px}
+.chip{touch-action:none;user-select:none;-webkit-user-select:none;border:0;border-radius:18px;height:38px;min-width:54px;padding:0 14px;font:600 17px "Newsreader",Georgia,serif;cursor:grab}
+.chip.p{background:var(--phrase);color:var(--phrase-t)}
+.chip.w{background:var(--word);color:var(--word-t)}
+.chip.sel{outline:3px solid var(--ink)}
+.ghost{position:fixed;z-index:9;pointer-events:none;transform:translate(-50%,-50%)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 12px}
+.btn{font:600 17px "Newsreader",Georgia,serif;height:42px;padding:0 18px;border-radius:21px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.btn.main{background:var(--ink);color:var(--paper)}
+.btn[hidden]{display:none}
+.msg{min-height:3.2em;margin:0;padding:10px 14px;border-left:4px solid var(--line);background:var(--panel);border-radius:0 10px 10px 0}
+.msg.good{border-color:var(--ok)}.msg.warn{border-color:var(--bad)}
+.tour{border:3px solid var(--word);position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:5;background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 14px;margin:0 0 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.tour[hidden]{display:none}
+.tour p{margin:0 0 10px;font-size:19px;line-height:1.4}
+.tour .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tour .cnt{font-size:15px;opacity:.8}
+.tour .tb{font:600 16px "Newsreader",Georgia,serif;height:36px;padding:0 16px;border-radius:18px;border:2px solid var(--paper);background:transparent;color:var(--paper);cursor:pointer;margin-left:8px}
+.tour .tb.go{background:var(--word);border-color:var(--word);color:var(--word-t)}
+.hl{outline:4px solid var(--word);outline-offset:4px;border-radius:12px}
+.why{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:2px solid var(--bad);border-radius:12px;padding:10px 12px;margin:0 0 12px}
+.why[hidden]{display:none}
+.why p{margin:0;flex:1;font-size:17px;line-height:1.4}
+.why button{font:600 15px "Newsreader",Georgia,serif;height:32px;padding:0 12px;border-radius:16px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.top h1{margin:0 0 6px}
+.btn.sm{height:34px;padding:0 12px;font-size:15px;flex:none;margin-top:4px}
+.welcome{position:fixed;inset:0;z-index:20;background:rgba(10,14,35,.75);display:flex;align-items:center;justify-content:center;padding:20px}
+.welcome[hidden]{display:none}
+.wcard{background:var(--panel);color:var(--ink);border-radius:18px;padding:24px;max-width:440px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.4);border-top:8px solid var(--word)}
+.wcard h2{margin:0 0 8px;font-size:27px;line-height:1.2}
+.wcard p{margin:0 0 18px}
+.wcard .actions{margin:0}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
+.wcard ul{margin:0 0 14px;padding-left:20px}.wcard li{margin:2px 0}
+@keyframes pulse{50%{outline-offset:9px}}
+@keyframes pop{50%{transform:translate(-50%,-50%) scale(1.18)}}
+.hl{animation:pulse 1.4s ease-in-out infinite}
+.slot.ok{animation:pop .3s}
+@media (prefers-reduced-motion:reduce){.hl,.slot.ok{animation:none}}
+:focus-visible{outline:3px solid var(--phrase);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.slot.bad{animation:none}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><h1>Build the syntax tree</h1><button class="btn sm" id="snd" aria-pressed="true">Sound on</button></div>
+<p class="intro">Drag a label onto a dashed slot, or tap a label and then a slot. Tap a filled slot to clear it. Blue labels name phrases; yellow labels name single words.</p>
+<div class="tour" id="tour" role="region" aria-label="Tutorial" hidden>
+<p id="tourText"></p>
+<div class="row"><span class="cnt" id="tourCnt"></span><span><button class="tb" id="tourSkip">Skip tutorial</button><button class="tb go" id="tourNext">Next</button></span></div>
+</div>
+<div class="prog" id="prog"></div>
+<div class="sentence" id="sent"></div>
+<div class="board"><div id="treeHost"></div></div>
+<div class="why" id="why" role="alert" hidden><p id="whyText"></p><button id="whyX" aria-label="Close explanation">Close</button></div>
+<div class="bank" id="bank"></div>
+<div class="actions">
+<button class="btn main" id="check">Check tree</button>
+<button class="btn" id="hint">Hint</button>
+<button class="btn" id="reset">Clear</button>
+<button class="btn main" id="next" hidden>Next sentence</button>
+</div>
+<p class="msg" id="msg" role="status" aria-live="polite">Fill every slot, then check your tree.</p>
+</main>
+<div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="wh" hidden>
+<div class="wcard"><h2 id="wh">Welcome! Let's build syntax trees.</h2>
+<p>A syntax tree shows how words group into phrases. You will build 10 trees by dragging labels onto the right spots. A quick tutorial on the first sentence will show you how.</p>
+<div class="actions"><button class="btn main" id="wGo">Show me how</button><button class="btn" id="wSkip">Skip tutorial</button></div></div></div>
+<div class="welcome" id="end" role="dialog" aria-modal="true" aria-labelledby="eh" hidden>
+<div class="wcard"><h2 id="eh">Congratulations! All 10 trees built.</h2>
+<p>You have practiced the core patterns of English phrase structure:</p>
+<ul><li>S → NP VP</li><li>NP → Det N, or just N for a name</li><li>VP → V NP, or V PP</li><li>PP → P NP</li></ul>
+<p>Before class, pick one tree that felt tricky and bring it to discuss with us.</p>
+<div class="actions"><button class="btn main" id="eAgain">Play again</button><button class="btn" id="eClose">Close</button></div></div></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<script>
+const LEVELS=[
+{s:"The student read a book.",t:["S",["NP",["Det","The"],["N","student"]],["VP",["V","read"],["NP",["Det","a"],["N","book"]]]],
+ hint:"A sentence (S) splits into a noun phrase (NP) and a verb phrase (VP). The VP holds the verb and its object.",
+ why:"S → NP VP, NP → Det N, VP → V NP. The object \"a book\" is its own NP inside the VP."},
+{s:"Maria saw the dog.",t:["S",["NP",["N","Maria"]],["VP",["V","saw"],["NP",["Det","the"],["N","dog"]]]],
+ hint:"A name is a whole noun phrase on its own: the NP has just one word-level label inside.",
+ why:"NP → N works for names. The object NP is Det N again, and it still sits inside the VP."},
+{s:"The teacher closed the door.",t:["S",["NP",["Det","The"],["N","teacher"]],["VP",["V","closed"],["NP",["Det","the"],["N","door"]]]],
+ hint:"Find the verb first. Everything that follows it and completes the action belongs in the VP.",
+ why:"S → NP VP, VP → V NP. Both noun phrases have the same Det N shape, but one is the subject and one is inside the VP."},
+{s:"A girl found the key.",t:["S",["NP",["Det","A"],["N","girl"]],["VP",["V","found"],["NP",["Det","the"],["N","key"]]]],
+ hint:"Ask who did the action (the subject NP) and what the verb acted on (the NP inside the VP).",
+ why:"The subject NP sits directly under S; the object NP sits under the VP."},
+{s:"The teacher called Maria.",t:["S",["NP",["Det","The"],["N","teacher"]],["VP",["V","called"],["NP",["N","Maria"]]]],
+ hint:"Names can be objects too. A name still needs an NP above its N, and that NP belongs inside the VP.",
+ why:"VP → V NP, and NP → N. Whether a name is a subject or an object, it is still a full NP."},
+{s:"The cat sat on the mat.",t:["S",["NP",["Det","The"],["N","cat"]],["VP",["V","sat"],["PP",["P","on"],["NP",["Det","the"],["N","mat"]]]]],
+ hint:"\"on the mat\" is a prepositional phrase (PP): a preposition (P) plus an NP. The PP sits inside the VP.",
+ why:"VP → V PP, PP → P NP. Phrases nest inside phrases, which is what makes trees recursive."},
+{s:"The dog slept on the bed.",t:["S",["NP",["Det","The"],["N","dog"]],["VP",["V","slept"],["PP",["P","on"],["NP",["Det","the"],["N","bed"]]]]],
+ hint:"Look for the preposition. It starts a PP that holds its own NP, and the whole PP goes inside the VP.",
+ why:"VP → V PP, PP → P NP. The NP \"the bed\" is inside the PP, not directly under the VP."},
+{s:"Ana waited at the station.",t:["S",["NP",["N","Ana"]],["VP",["V","waited"],["PP",["P","at"],["NP",["Det","the"],["N","station"]]]]],
+ hint:"The subject is a name, so its NP has just an N. The PP \"at the station\" goes inside the VP.",
+ why:"NP → N for the name, then VP → V PP and PP → P NP."},
+{s:"The children played in the park.",t:["S",["NP",["Det","The"],["N","children"]],["VP",["V","played"],["PP",["P","in"],["NP",["Det","the"],["N","park"]]]]],
+ hint:"Same pattern as the cat and the mat: verb, then a PP made of a preposition and an NP.",
+ why:"VP → V PP, PP → P NP. Spotting the preposition tells you where a PP begins."},
+{s:"The bird sat on a branch.",t:["S",["NP",["Det","The"],["N","bird"]],["VP",["V","sat"],["PP",["P","on"],["NP",["Det","a"],["N","branch"]]]]],
+ hint:"Check for a PP after the verb, and remember that its NP is nested inside it.",
+ why:"S → NP VP, VP → V PP, PP → P NP, NP → Det N. You have built every pattern in this set."}
+];
+const PHRASE=["S","NP","VP","PP"],WORDS=["Det","N","V","P"];
+const $=s=>document.querySelector(s);
+let li=0,fills={},slots=[],words=[],sel=null,suppress=false,whyFor=-1;
+const IMM=5;
+const isP=l=>PHRASE.includes(l);
+
+function buildBank(){
+ $("#bank").innerHTML='<small>Labels:</small>'+[...PHRASE,...WORDS].map(l=>`<button class="chip ${isP(l)?'p':'w'}" data-l="${l}">${l}</button>`).join("");
+}
+function load(){
+ const L=LEVELS[li];fills={};slots=[];words=[];sel=null;hideWhy();
+ let leaf=0,maxD=0;
+ const walk=(a,d)=>{const n={l:a[0],d};maxD=Math.max(maxD,d);
+  if(typeof a[1]==="string"){n.w=a[1];n.x=leaf++ +0.5;}
+  else{n.k=a.slice(1).map(c=>walk(c,d+1));n.x=n.k.reduce((s,c)=>s+c.x,0)/n.k.length;}
+  return n;};
+ const root=walk(L.t,0),rows=maxD+2,N=leaf;
+ const px=x=>x/N*100,py=r=>(r+.5)/rows*100,row=n=>n.w!==undefined?maxD:n.d;
+ let lines="",html="";
+ const emit=n=>{const X=px(n.x),Y=py(row(n)),id=slots.length;slots.push(n.l);words[id]=n.w;
+  html+=`<button class="slot" data-i="${id}" style="left:${X}%;top:${Y}%" aria-label="Empty slot ${id+1}"></button>`;
+  if(n.k)n.k.forEach(c=>{lines+=`<line x1="${X}" y1="${Y}" x2="${px(c.x)}" y2="${py(row(c))}"/>`;emit(c);});
+  else{const wy=py(rows-1);lines+=`<line x1="${X}" y1="${Y}" x2="${X}" y2="${wy}"/>`;html+=`<span class="word" style="left:${X}%;top:${wy}%">${n.w}</span>`;}};
+ emit(root);
+ $("#treeHost").innerHTML=`<div class="tree" style="height:${rows*58}px"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>${html}</div>`;
+ $("#prog").textContent=`Sentence ${li+1} of ${LEVELS.length}`;
+ $("#sent").textContent=L.s;
+ $("#next").hidden=true;$("#check").hidden=li<IMM;
+ say(li<IMM?"Place a label in each slot. A slot turns green when the label fits and red when it doesn't.":li===IMM?"No instant feedback from here on. Fill every slot, then press Check tree.":"Fill every slot, then check your tree.");
+ document.querySelectorAll(".chip").forEach(c=>c.classList.remove("sel"));
+}
+function say(t,k){const m=$("#msg");m.textContent=t;m.className="msg"+(k?" "+k:"");}
+const DEF={Det:"determiners like the, a or this, which introduce a noun",N:"nouns, which name people, places or things",V:"verbs, which name actions",P:"prepositions like on, in or at, which start a PP"};
+const PQ={S:"S is the whole sentence, so it belongs only at the very top of the tree.",NP:"An NP is a noun phrase: it starts with a Det or an N, not a verb. Check the first word-level label under this slot.",VP:"A VP starts with a verb (V). Check the first word-level label under this slot.",PP:"A PP starts with a preposition (P). Check the first word-level label under this slot."};
+function explain(i,x){
+ const c=slots[i],w=words[i];
+ if(c==="S")return "This slot is at the very top, so it stands for the whole sentence. Which label means that?";
+ if(!isP(c)&&isP(x))return x+" is a phrase label, but this slot sits right above a single word. A word-level (yellow) label fits here.";
+ if(isP(c)&&!isP(x))return x+" labels a single word, but this slot covers a group of words. A phrase (blue) label fits here.";
+ if(!isP(c))return x+" labels "+DEF[x]+'. "'+w+'" isn\'t that kind of word.';
+ return PQ[x];
+}
+function hideWhy(){$("#why").hidden=true;whyFor=-1;}
+function showWhy(i,x){whyFor=i;$("#whyText").textContent=explain(i,x);$("#why").hidden=false;}
+function setSlot(i,l){
+ const el=document.querySelector(`.slot[data-i="${i}"]`);
+ if(whyFor===i)hideWhy();
+ if(l){fills[i]=l;el.textContent=l;el.className="slot filled "+(isP(l)?"p":"w");
+  let st="";
+  if(li<IMM){const ok=l===slots[i];el.classList.add(ok?"ok":"bad");st=ok?" (correct)":" (incorrect)";if(!ok)showWhy(i,l);if(ok){if(!slots.every((c,k)=>fills[k]===c))sfx.ok();}else sfx.bad();}
+  el.setAttribute("aria-label","Slot "+(i+1)+": "+l+st);
+  if(li<IMM&&slots.every((c,k)=>fills[k]===c))done();}
+ else{delete fills[i];el.textContent="";el.className="slot";el.setAttribute("aria-label","Empty slot "+(i+1));}
+}
+function done(){
+ const last=li===LEVELS.length-1;
+ say(PRAISE[li%PRAISE.length]+" "+LEVELS[li].why+(last?" You have built all "+LEVELS.length+" trees. Bring one tree you found tricky to class.":""),"good");
+ $("#check").hidden=true;$("#next").hidden=last;
+ sfx.win();confetti(last?260:110);
+ if(last)setTimeout(()=>{if(li===LEVELS.length-1&&slots.every((c,k)=>fills[k]===c)){$("#end").hidden=false;$("#eAgain").focus();}},1600);
+}
+$("#eClose").onclick=()=>{$("#end").hidden=true;};
+$("#eAgain").onclick=()=>{$("#end").hidden=true;li=0;load();window.scrollTo(0,0);};
+$("#whyX").onclick=hideWhy;
+function selectChip(l){
+ sel=sel===l?null:l;
+ document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("sel",c.dataset.l===sel));
+}
+/* tap-to-place and clear */
+$("#treeHost").addEventListener("click",e=>{
+ const s=e.target.closest(".slot");if(!s)return;const i=+s.dataset.i;
+ if(sel){setSlot(i,sel);}else if(fills[i]){setSlot(i,null);}
+});
+$("#bank").addEventListener("click",e=>{
+ const c=e.target.closest(".chip");if(!c)return;
+ if(suppress){suppress=false;return;}
+ selectChip(c.dataset.l);
+});
+/* drag and drop with pointer events (works with mouse and touch) */
+$("#bank").addEventListener("pointerdown",e=>{
+ const c=e.target.closest(".chip");if(!c)return;
+ const sx=e.clientX,sy=e.clientY;let ghost=null,over=null;
+ const move=ev=>{
+  if(!ghost&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>6){
+   ghost=c.cloneNode(true);ghost.classList.add("ghost");document.body.appendChild(ghost);}
+  if(ghost){ghost.style.left=ev.clientX+"px";ghost.style.top=ev.clientY+"px";
+   const t=document.elementFromPoint(ev.clientX,ev.clientY),s=t&&t.closest(".slot");
+   if(over&&over!==s)over.classList.remove("over");
+   over=s;if(s)s.classList.add("over");}
+ };
+ const up=()=>{
+  window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);window.removeEventListener("pointercancel",up);
+  if(ghost){ghost.remove();suppress=true;setTimeout(()=>suppress=false,0);
+   if(over){over.classList.remove("over");setSlot(+over.dataset.i,c.dataset.l);}}
+ };
+ window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);window.addEventListener("pointercancel",up);
+});
+$("#check").onclick=()=>{
+ const empty=slots.length-Object.keys(fills).length;
+ if(empty){say(`${empty} slot${empty>1?"s are":" is"} still empty. Fill every slot, then check.`,"warn");return;}
+ let right=0;
+ slots.forEach((c,i)=>{const el=document.querySelector(`.slot[data-i="${i}"]`);
+  const ok=fills[i]===c;if(ok)right++;
+  el.classList.remove("ok","bad");void el.offsetWidth;el.classList.add(ok?"ok":"bad");});
+ if(right===slots.length){
+  done();
+ }else{sfx.bad();say(`${right} of ${slots.length} labels fit. Fix the ones outlined in red, then check again.`,"warn");}
+};
+$("#hint").onclick=()=>say(LEVELS[li].hint);
+$("#reset").onclick=()=>{slots.forEach((_,i)=>setSlot(i,null));hideWhy();say(li<IMM?"Cleared. Place a label in each slot.":"Cleared. Fill every slot, then check your tree.");};
+$("#next").onclick=()=>{if(tourOn)tourEnd();li++;load();};
+buildBank();load();
+/* first-item tutorial */
+const TOUR=[
+{t:"These are your labels. Blue labels name phrases (S, NP, VP, PP). Yellow labels name single words (Det, N, V, P).",el:["#bank"]},
+{t:"Every dashed slot needs a label. Drag a label onto a slot, or tap a label and then a slot. Tap a filled slot to clear it.",el:[".board"]},
+{t:"A slot turns green when the label fits and red when it doesn't. A red slot comes with a short explanation, so read it and try another label.",el:[".board"]},
+{t:"Start at the top: a sentence (S) splits into a noun phrase (NP) and a verb phrase (VP). When every slot is green, the tree is done.",el:[".board"]}
+];
+let ti=0,tourOn=false;
+function tourClear(){document.querySelectorAll(".hl").forEach(e=>e.classList.remove("hl"));}
+function tourShow(i){
+ ti=i;tourClear();const st=TOUR[i];
+ $("#tourText").textContent=st.t;
+ $("#tourCnt").textContent=`Tip ${i+1} of ${TOUR.length}`;
+ $("#tourNext").textContent=i===TOUR.length-1?"Got it":"Next";
+ st.el.forEach(q=>$(q).classList.add("hl"));
+}
+function tourEnd(){tourOn=false;tourClear();$("#tour").hidden=true;}
+function tourStart(){tourOn=true;$("#tour").hidden=false;tourShow(0);}
+$("#tourNext").onclick=()=>{ti<TOUR.length-1?tourShow(ti+1):tourEnd();};
+$("#tourSkip").onclick=tourEnd;
+
+/* sound and celebration */
+let soundOn=true;try{soundOn=localStorage.getItem("tb-sound")!=="off";}catch(e){}
+let AC=null;
+function ctx(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();}catch(e){}return AC;}
+function tone(f,t,d,type,v){const c=ctx();if(!c||!soundOn)return;const o=c.createOscillator(),g=c.createGain(),s=c.currentTime+t;
+ o.type=type||"sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(v||.15,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+d);
+ o.connect(g);g.connect(c.destination);o.start(s);o.stop(s+d+.05);}
+const sfx={ok(){tone(660,0,.12);tone(880,.09,.18);},bad(){tone(220,0,.18,"triangle",.12);tone(180,.1,.2,"triangle",.1);},
+ win(){[523,659,784,1047].forEach((f,i)=>tone(f,i*.11,.3,"sine",.16));tone(1319,.5,.5,"sine",.12);}};
+function sndLabel(){const b=$("#snd");b.textContent=soundOn?"Sound on":"Sound off";b.setAttribute("aria-pressed",soundOn);}
+$("#snd").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem("tb-sound",soundOn?"on":"off");}catch(e){}sndLabel();if(soundOn)sfx.ok();};
+sndLabel();
+function confetti(n){
+ if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+ const cv=$("#confetti"),c=cv.getContext("2d");cv.width=innerWidth;cv.height=innerHeight;
+ const cols=["#F2B632","#3B4BA8","#2E8B57","#C8453B","#7D8CE8","#FFFFFF"];
+ const ps=Array.from({length:n},()=>({x:innerWidth/2+(Math.random()-.5)*120,y:innerHeight*.45,vx:(Math.random()-.5)*15,vy:-Math.random()*14-4,r:Math.random()*6+5,c:cols[Math.random()*cols.length|0],a:Math.random()*6,va:(Math.random()-.5)*.4}));
+ let f=0;(function step(){c.clearRect(0,0,cv.width,cv.height);
+  ps.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.vx*=.99;p.a+=p.va;c.save();c.translate(p.x,p.y);c.rotate(p.a);c.fillStyle=p.c;c.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);c.restore();});
+  if(++f<150)requestAnimationFrame(step);else c.clearRect(0,0,cv.width,cv.height);})();
+}
+const PRAISE=["Nice work!","Great tree!","Well done!","Spot on!","You've got it!"];
+/* welcome card */
+function welcomeOpen(){$("#welcome").hidden=false;$("#wGo").focus();}
+$("#wGo").onclick=()=>{ctx();$("#welcome").hidden=true;tourStart();};
+$("#wSkip").onclick=()=>{ctx();$("#welcome").hidden=true;};
+welcomeOpen();
+</script>
+</body>
+</html>
